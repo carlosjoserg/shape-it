@@ -1,0 +1,191 @@
+<!-- Entry point for using OpenNI devices -->
+<launch>
+
+  <!-- "camera" should uniquely identify the device. All topics are pushed down
+       into the "camera" namespace, and it is prepended to tf frame ids. -->
+  <arg name="camera" default="camera" />
+  <arg name="rgb_frame_id"   default="/$(arg camera)_rgb_optical_frame" />
+  <arg name="depth_frame_id" default="/$(arg camera)_depth_optical_frame" />
+
+  <arg name="device_id" default="#1" />
+
+  <!-- By default, calibrations are stored to file://${ROS_HOME}/camera_info/${NAME}.yaml,
+       where ${NAME} is of the form "[rgb|depth]_[serial#]", e.g. "depth_B00367707227042B".
+       See camera_info_manager docs for calibration URL details. -->
+  <arg name="rgb_camera_info_url"   default="" />
+  <arg name="depth_camera_info_url" default="" />
+
+  <!-- Arguments for remapping all device namespaces -->
+  <arg name="rgb"              default="rgb" />
+  <arg name="ir"               default="ir" />
+  <arg name="depth"            default="depth" />
+
+  <!-- Optionally suppress loading the driver nodelet and/or publishing the default tf
+       tree. Useful if you are playing back recorded raw data from a bag, or are
+       supplying a more accurate tf tree from calibration. -->
+  <arg name="load_driver" default="true" />
+  <arg name="publish_tf" default="true" />
+
+  <!-- Disable bond topics by default -->
+  <arg name="respawn" default="false" />
+
+  <!-- Start nodelet manager in top-level namespace -->
+  <arg name="manager" value="$(arg camera)_nodelet_manager" />
+  <arg name="debug" default="false" /> <!-- Run manager in GDB? -->
+  <include file="$(find openni2_launch)/launch/includes/manager.launch">
+    <arg name="name" value="$(arg manager)" />
+    <arg name="debug" value="$(arg debug)" />
+  </include>
+
+  <!-- Push down all topics/nodelets into "camera" namespace -->
+  <group ns="$(arg camera)">
+
+    <!-- Load driver -->
+    <include if="$(arg load_driver)"
+       file="$(find openni2_launch)/launch/includes/device.launch">
+      <!-- Could really use some syntactic sugar for this -->
+      <arg name="manager"               value="/$(arg manager)" /> <!-- Fully resolved -->
+      <arg name="device_id"             value="$(arg device_id)" />
+      <arg name="rgb_frame_id"          value="$(arg rgb_frame_id)" />
+      <arg name="depth_frame_id"        value="$(arg depth_frame_id)" />
+      <arg name="rgb_camera_info_url"   value="$(arg rgb_camera_info_url)" />
+      <arg name="depth_camera_info_url" value="$(arg depth_camera_info_url)" />
+      <arg name="rgb"                   value="$(arg rgb)" />
+      <arg name="ir"                    value="$(arg ir)" />
+      <arg name="depth"                 value="$(arg depth)" />
+      <arg name="respawn"               value="$(arg respawn)" />
+    </include>
+
+    <!-- Load standard constellation of processing nodelets -->
+    <include file="$(find openni2_launch)/launch/includes/processing.launch">
+      <arg name="manager"               value="/$(arg manager)" /> <!-- Fully resolved -->
+      <arg name="rgb"                   value="$(arg rgb)" />
+      <arg name="ir"                    value="$(arg ir)" />
+      <arg name="depth"                 value="$(arg depth)" />
+      <arg name="respawn"               value="$(arg respawn)" />
+    </include>
+
+  </group> <!-- camera -->
+
+  <!-- Load reasonable defaults for the relative pose between cameras -->
+  <include if="$(arg publish_tf)"
+     file="$(find openni2_launch)/launch/kinect_frames.launch">
+    <arg name="camera" value="$(arg camera)" />
+  </include>
+
+  <!-- have all the old parameters to prevent roslaunch errors -->
+  <arg name="manager" default="" />
+  <arg name="respawn" default="" />
+  <arg name="rgb" default="" />
+
+  <!-- deprecation notice -->
+  <node name="rgb_deprecated"
+        pkg="rgbd_launch"
+        type="hydro-upgrade-notice"
+        required="true">
+    <param name="name" value="rgb.launch" />
+    <param name="from_pkg" value="openni2_launch" />
+    <param name="to_pkg" value="rgbd_launch" />
+    <param name="from_pkg_path" value="launch/includes/color.launch" />
+    <param name="to_pkg_path" value="launch/includes/rgb.launch.xml" />
+  </node>
+
+
+
+    <arg name="tabletop_segmentation_points_in" default="camera/depth/points_xyzrgb" />
+    <arg name="tabletop_segmentation_convert_to_base_link" default="false" />
+    <arg name="tabletop_segmentation_clustering_voxel_size" default="0.001" />
+    <arg name="flatten_table" default="false"/>
+    <arg name="table_padding" default="0.02"/>
+
+<!--DISPLAY ROBOT-->
+
+    <arg name="gui" default="True" />
+    <param name="use_gui" value="$(arg gui)"/>
+
+    <!-- This is required to test any posture of the robot by writing on the joint states /-->
+    <rosparam param="source_list">[joint_states]</rosparam>
+    
+    <param name="robot_description" command="$(find xacro)/xacro.py $(find unipi_robot)/urdf/unipi_robot.urdf.xacro"/> 
+    <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" ></node>
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
+
+  <!--HARD CALIBRATION-->
+   
+
+
+    <node pkg="tf" type="static_transform_publisher" name="static_transform_publisher" args="0.020251 0.613170 0.248052 0.590822 0.596489 -0.379738 0.388496 /camera_rgb_optical_frame /world_link 1 " />
+   
+  ##rosrun tf static_transform_publisher 0.020251 0.613170 0.248052 0.590822 0.596489 -0.379738 0.388496 /camera_rgb_optical_frame /world_link 
+
+
+
+    <node pkg="visual_perception" name="tabletop_segmentation" type="tabletop_segmentation" respawn="true" output="screen">
+	<!--topic remapping-->
+        <remap from="cloud_in" to="$(arg tabletop_segmentation_points_in)" />
+        <remap from="segmentation_srv" to="tabletop_segmentation" />
+        <remap from="markers_out" to="tabletop_segmentation_markers" />
+
+	<param name="clustering_voxel_size" value="$(arg tabletop_segmentation_clustering_voxel_size)" />
+	<param name="inlier_threshold" value="300" />
+	<param name="plane_detection_voxel_size" value="0.01" />
+	<param name="cluster_distance" value="0.03" />
+	<param name="min_cluster_size" value="100" />
+	<param name="flatten_table" value="$(arg flatten_table)" />
+	<param name="table_padding" value="$(arg table_padding)" />
+
+	<!-- processing and filtering frame -->
+	<!-- all clouds converted to and processed in base link frame -->
+	<param if="$(arg tabletop_segmentation_convert_to_base_link)" name="processing_frame" value="calib_kimp_right_arm_base_link" />
+	<param if="$(arg tabletop_segmentation_convert_to_base_link)" name="up_direction" value="-1.0" />
+	<param if="$(arg tabletop_segmentation_convert_to_base_link)" name="z_filter_min" value="0.1" />
+	<param if="$(arg tabletop_segmentation_convert_to_base_link)" name="z_filter_max" value="1.5" />
+	<param if="$(arg tabletop_segmentation_convert_to_base_link)" name="y_filter_min" value="-1.5" />
+	<param if="$(arg tabletop_segmentation_convert_to_base_link)" name="y_filter_max" value="1.5" />
+	<param if="$(arg tabletop_segmentation_convert_to_base_link)" name="x_filter_min" value="-1.5" />
+	<param if="$(arg tabletop_segmentation_convert_to_base_link)" name="x_filter_max" value="1.5" />
+	<param if="$(arg tabletop_segmentation_convert_to_base_link)" name="table_z_filter_min" value="0.002" />
+	<param if="$(arg tabletop_segmentation_convert_to_base_link)" name="table_z_filter_max" value="1.5" />		
+
+	<!-- all clouds will be processed in the incoming frame, which is -->
+	<!-- assumed to the the camera's optical frame -->
+	<param unless="$(arg tabletop_segmentation_convert_to_base_link)" name="processing_frame" value="" />
+	<param unless="$(arg tabletop_segmentation_convert_to_base_link)" name="up_direction" value="-1.0" />
+	<param unless="$(arg tabletop_segmentation_convert_to_base_link)" name="z_filter_min" value="0.1" />
+	<param unless="$(arg tabletop_segmentation_convert_to_base_link)" name="z_filter_max" value="1.12" />
+	<param unless="$(arg tabletop_segmentation_convert_to_base_link)" name="y_filter_min" value="-1.5" />
+	<param unless="$(arg tabletop_segmentation_convert_to_base_link)" name="y_filter_max" value="1.5" />
+	<param unless="$(arg tabletop_segmentation_convert_to_base_link)" name="x_filter_min" value="-1.5" />
+	<param unless="$(arg tabletop_segmentation_convert_to_base_link)" name="x_filter_max" value="1.5" />
+	<param unless="$(arg tabletop_segmentation_convert_to_base_link)" name="table_z_filter_min" value="0.009" />
+	<param unless="$(arg tabletop_segmentation_convert_to_base_link)" name="table_z_filter_max" value="0.6" />			
+
+    </node>
+    <node pkg="visual_perception" name="cylinder_fitting" type="cylinder_fitting" respawn="true" output="screen">
+
+
+  </node>
+
+
+
+  
+    <node pkg="visual_perception" name="sphere_fitting" type="sphere_fitting" respawn="true" output="screen">
+
+
+ 
+
+
+   </node>
+    <node pkg="visual_perception" name="cone_fitting" type="cone_fitting" respawn="true" output="screen">
+
+   </node>
+  
+<node pkg="visual_perception" name="parallelepiped_fitting" type="parallelepiped_fitting" respawn="true" output="screen">
+
+   </node>
+
+   <node pkg="visual_perception" name="object_managing" type="object_managing" respawn="true" output="screen">
+
+   </node>
+ 
+</launch>

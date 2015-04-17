@@ -1,0 +1,29 @@
+# typical use doesn't put anything in the request, as the node listens for incoming point clouds on its own
+
+# optional table if you want to re-use a previously-detected table instead of re-detecting (leave empty to detect table)
+
+
+int32 n_object
+
+
+
+sensor_msgs/PointCloud[] cluster
+
+
+
+
+---
+
+
+# The information for the cylinders that has been detected from clusters, should match number of clusters
+Cone cone
+
+float32 I
+
+
+# Whether the detection has succeeded or failed
+int32 NO_CLOUD_RECEIVED = 1
+int32 NO_CONE = 2
+#int32 OTHER_ERROR = 3
+int32 SUCCESS = 4
+int32 result

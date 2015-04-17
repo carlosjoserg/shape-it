@@ -1,0 +1,9 @@
+<!-- Entry point for using OpenNI devices -->
+<launch>
+
+  
+  <include file="$(find pr2_machine)/$(env ROBOT).machine" />
+  
+  
+
+</launch>

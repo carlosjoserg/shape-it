@@ -1,0 +1,15 @@
+<launch>
+
+  <arg name="db" default="false" />
+  <arg name="debug" default="false" />
+
+<include file="$(find openni2_launch)/launch/openni2.launch">
+    
+
+  </include>
+
+  <include file="$(find visual_perception)/launch/tabletop_segmentation_d.launch">
+   
+  </include>
+
+  </launch>

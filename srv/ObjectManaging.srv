@@ -1,0 +1,54 @@
+# put 0 in the request, as the node listens response
+
+
+
+
+
+int32 init
+
+
+---
+
+
+# The information for the cylinders that has been detected from clusters, should match number of clusters
+
+Table table
+
+
+Cylinder[10] cylinder
+
+
+Sphere[10] sphere
+
+
+Cone[10]  cone
+
+
+Plane[10] plane
+
+
+#Parallelepiped[10] parallelepiped
+
+
+int32 cyl
+int32 sph
+int32 con
+int32 plan
+
+
+
+
+
+
+int32 n_object
+
+
+# Whether the detection has succeeded or failed
+int32 NO_CLOUD_RECEIVED = 1
+int32 NO_OBJECT = 2
+#int32 OTHER_ERROR = 3
+int32 SUCCESS = 4
+int32 result
+
+
+

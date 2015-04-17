@@ -1,0 +1,8 @@
+<launch>
+
+<node pkg="rosbag" type="record" name="record" output="screen" args="-o /home/luca/bagfiles/tf --node=tf "/> 
+    
+
+
+
+</launch>

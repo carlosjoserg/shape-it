@@ -1,0 +1,27 @@
+
+
+
+int32 n_init
+
+
+---
+
+
+# The information for the cylinders that has been detected from clusters, should match number of clusters
+
+
+Cylinder[] cylinder
+Sphere[] sphere
+Cone[]  cone
+Plane[] plane
+Parrallepiped[] parallelepiped
+
+int32 n_object
+
+
+# Whether the detection has succeeded or failed
+int32 NO_CLOUD_RECEIVED = 1
+int32 NO_OBJECT = 2
+#int32 OTHER_ERROR = 3
+int32 SUCCESS = 4
+int32 result
