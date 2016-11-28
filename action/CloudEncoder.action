@@ -1,0 +1,8 @@
+sensor_msgs/PointCloud2 in
+shape_it/EncoderParam param
+---
+shape_it/EncodingStats stats
+shape_it/EncodedCloud out
+---
+shape_it/EncodingStats stats
+shape_it/EncodedCloud out
